@@ -8,7 +8,7 @@ import db
 import os
 import uvicorn
 
-# Importamos todas las funciones de mysql.py
+# Importamos todas las funciones de db.py
 from db import (
     authenticate, add_client, get_client, get_employee, delete_employee,
     update_employee, add_employee, get_nominas, delete_nomina, get_users,
@@ -28,8 +28,11 @@ app.add_middleware(
     allow_headers=["*"],  # Permitir todos los headers
 )
 
-# Archivos estáticos (equivalente a express.static)
-app.mount("/static", StaticFiles(directory="../public"), name="static")
+# Rutas estáticas para cuando sea necesario servir archivos estáticos
+if os.path.exists("../public"):
+    app.mount("/static", StaticFiles(directory="../public"), name="static")
+elif os.path.exists("./public"):
+    app.mount("/static", StaticFiles(directory="./public"), name="static")
 
 # Modelos de datos para validación
 class LoginData(BaseModel):
@@ -89,6 +92,11 @@ class ExcelUserData(BaseModel):
     center: str
     nomina_idNomina: int
     nomina_idClient: int
+
+# Ruta raíz para verificar que la API está funcionando
+@app.get("/")
+async def root():
+    return {"message": "API funcionando correctamente"}
 
 # Login
 @app.post("/login")
@@ -337,4 +345,5 @@ async def client_update(idClient: int, data: ClientData):
         raise HTTPException(status_code=500, detail=f"Error interno al actualizar cliente: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=3000, reload=True)
+    port = int(os.getenv("PORT", 3000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

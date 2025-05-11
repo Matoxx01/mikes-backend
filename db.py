@@ -16,7 +16,7 @@ class Database:
         try:
             self.connection = mysql.connector.connect(
                 host=os.getenv('DB_HOST'),
-                port=os.getenv('PORT'),
+                port=os.getenv('DB_PORT', '3306'),  # Puerto por defecto
                 user=os.getenv('USER'),
                 password=os.getenv('PASS'),
                 database=os.getenv('DB')
