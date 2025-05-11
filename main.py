@@ -8,6 +8,12 @@ import db
 import os
 import uvicorn
 
+app = FastAPI(
+    title="Mike's APIs",
+    description="APIs en produccion de Mike's",
+    version="1.0.0",
+)
+
 # Importamos todas las funciones de db.py
 from db import (
     authenticate, add_client, get_client, get_employee, delete_employee,
@@ -99,7 +105,7 @@ async def root():
     return {"message": "API funcionando correctamente"}
 
 # Login
-@app.post("/login")
+@app.post("/login", tags=["Empleados"])
 async def login(data: LoginData):
     if not data.name or not data.password:
         raise HTTPException(status_code=400, detail="Falta nombre o clave")
@@ -117,7 +123,7 @@ async def login(data: LoginData):
     }
 
 # Obtener el cliente
-@app.get("/client")
+@app.get("/client", tags=["Clientes"])
 async def client_list():
     try:
         results = await get_client()
@@ -126,7 +132,7 @@ async def client_list():
         raise HTTPException(status_code=500, detail=f"Error al obtener clientes: {str(e)}")
 
 # Agregar cliente
-@app.post("/client")
+@app.post("/client", tags=["Clientes"])
 async def client_add(data: ClientData):
     if not data.name:
         raise HTTPException(status_code=400, detail="Nombre requerido")
@@ -138,7 +144,7 @@ async def client_add(data: ClientData):
         raise HTTPException(status_code=500, detail=f"Error al agregar cliente: {str(e)}")
 
 # Listar empleados
-@app.get("/employees")
+@app.get("/employees", tags=["Empleados"])
 async def employee_list():
     try:
         results = await get_employee()
@@ -147,7 +153,7 @@ async def employee_list():
         raise HTTPException(status_code=500, detail=f"Error al obtener empleados: {str(e)}")
 
 # Eliminar empleado
-@app.delete("/employee/{id}")
+@app.delete("/employee/{id}", tags=["Empleados"])
 async def employee_delete(id: int):
     try:
         await delete_employee(id)
@@ -156,7 +162,7 @@ async def employee_delete(id: int):
         raise HTTPException(status_code=500, detail=f"Error al eliminar empleado: {str(e)}")
 
 # Actualizar empleado
-@app.put("/employee/{id}")
+@app.put("/employee/{id}", tags=["Empleados"])
 async def employee_update(id: int, data: EmployeeData):
     try:
         await update_employee(id, data.name, data.password, data.role)
@@ -165,7 +171,7 @@ async def employee_update(id: int, data: EmployeeData):
         raise HTTPException(status_code=500, detail=f"Error al actualizar empleado: {str(e)}")
 
 # Crear empleado
-@app.post("/employee")
+@app.post("/employee", tags=["Empleados"])
 async def employee_create(data: EmployeeData):
     if not data.name or not data.password or not data.role:
         raise HTTPException(status_code=400, detail="Datos incompletos")
@@ -177,7 +183,7 @@ async def employee_create(data: EmployeeData):
         raise HTTPException(status_code=500, detail=f"Error al agregar empleado: {str(e)}")
 
 # Obtener nóminas de un cliente dado
-@app.get("/nomina")
+@app.get("/nomina", tags=["Nominas"])
 async def nomina_list(clientId: int):
     if not clientId:
         raise HTTPException(status_code=400, detail="Falta clientId en la query")
@@ -189,7 +195,7 @@ async def nomina_list(clientId: int):
         raise HTTPException(status_code=500, detail=f"Error al obtener nóminas: {str(e)}")
 
 # Eliminar nómina + usuarios asociados + posible cliente
-@app.delete("/nomina/{id}")
+@app.delete("/nomina/{id}", tags=["Nominas"])
 async def nomina_delete(id: int, clientId: int):
     try:
         await delete_nomina(id, clientId)
@@ -198,7 +204,7 @@ async def nomina_delete(id: int, clientId: int):
         raise HTTPException(status_code=500, detail=f"Error al eliminar nómina: {str(e)}")
 
 # Obtener usuarios
-@app.get("/users")
+@app.get("/users", tags=["Usuarios"])
 async def user_list(nominaId: int):
     if not nominaId:
         raise HTTPException(status_code=400, detail="Falta nominaId en la query")
@@ -210,7 +216,7 @@ async def user_list(nominaId: int):
         raise HTTPException(status_code=500, detail=f"Error al obtener usuarios: {str(e)}")
 
 # Agregar usuario
-@app.post("/user")
+@app.post("/user", tags=["Usuarios"])
 async def user_add(data: UserData):
     required_fields = ["rut", "name", "lastName", "sex", "area", "service", "center", "nominaId", "clientId"]
     for field in required_fields:
@@ -227,7 +233,7 @@ async def user_add(data: UserData):
         raise HTTPException(status_code=500, detail=f"Error interno al crear usuario: {str(e)}")
 
 # Obtener productos
-@app.get("/products")
+@app.get("/products", tags=["Productos"])
 async def product_list(userId: int):
     if not userId:
         raise HTTPException(status_code=400, detail="Falta userId en la query")
@@ -239,7 +245,7 @@ async def product_list(userId: int):
         raise HTTPException(status_code=500, detail=f"Error interno al obtener productos: {str(e)}")
 
 # Actualizar comentario y firma de un usuario
-@app.put("/user/{id}/comment")
+@app.put("/user/{id}/comment", tags=["Usuarios"])
 async def user_update_comment(id: int, data: CommentData):
     # Validación mejorada
     if data.comment is None or not data.performedBy:
@@ -252,7 +258,7 @@ async def user_update_comment(id: int, data: CommentData):
         raise HTTPException(status_code=500, detail=f"Error al actualizar: {str(e)}")
 
 # Eliminar usuario
-@app.delete("/user/{id}")
+@app.delete("/user/{id}", tags=["Usuarios"])
 async def user_delete(id: int):
     try:
         await delete_user(id)
@@ -261,7 +267,7 @@ async def user_delete(id: int):
         raise HTTPException(status_code=500, detail=f"Error interno al eliminar usuario: {str(e)}")
 
 # Exportar a Excel
-@app.get("/exportExcel")
+@app.get("/exportExcel", tags=["Excel"])
 async def export_excel(nominaId: int):
     if not nominaId:
         raise HTTPException(status_code=400, detail="Falta el parámetro nominaId")
@@ -273,7 +279,7 @@ async def export_excel(nominaId: int):
         raise HTTPException(status_code=500, detail=f"Error al exportar datos: {str(e)}")
 
 # Agregar nómina
-@app.post("/nomina")
+@app.post("/nomina", tags=["Excel"])
 async def nomina_add(data: NominaData):
     try:
         result = await insert_nomina(data.name, data.client_idClient)
@@ -282,7 +288,7 @@ async def nomina_add(data: NominaData):
         raise HTTPException(status_code=500, detail=f"Error interno al crear nómina: {str(e)}")
 
 # Agregar usuario desde Excel
-@app.post("/app_user")
+@app.post("/app_user", tags=["Excel"])
 async def user_add_excel(data: ExcelUserData):
     try:
         result = await insert_excel_user(data.dict())
@@ -291,7 +297,7 @@ async def user_add_excel(data: ExcelUserData):
         raise HTTPException(status_code=500, detail=f"Error interno al crear usuario: {str(e)}")
 
 # Agregar producto
-@app.post("/product")
+@app.post("/product", tags=["Excel"])
 async def product_add(data: ProductData):
     try:
         await insert_product(data.dict())
@@ -300,7 +306,7 @@ async def product_add(data: ProductData):
         raise HTTPException(status_code=500, detail=f"Error interno al crear producto: {str(e)}")
 
 # Actualizar cantidad de producto
-@app.put("/product/{id}")
+@app.put("/product/{id}", tags=["Productos"])
 async def product_update_quantity(id: int, data: ProductQuantityData):
     if data.quantity is None:
         raise HTTPException(status_code=400, detail="Falta quantity")
@@ -312,7 +318,7 @@ async def product_update_quantity(id: int, data: ProductQuantityData):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 # Buscar usuarios
-@app.get("/users/search")
+@app.get("/users/search", tags=["Usuarios"])
 async def users_search(q: Optional[str] = None):
     if not q:
         return []
@@ -324,7 +330,7 @@ async def users_search(q: Optional[str] = None):
         raise HTTPException(status_code=500, detail=f"Error interno al buscar usuarios: {str(e)}")
 
 # Eliminar cliente y todas sus dependencias
-@app.delete("/client/{idClient}")
+@app.delete("/client/{idClient}", tags=["Clientes"])
 async def client_delete(idClient: int):
     try:
         await delete_client(idClient)
@@ -333,7 +339,7 @@ async def client_delete(idClient: int):
         raise HTTPException(status_code=500, detail=f"Error al eliminar cliente: {str(e)}")
 
 # Actualizar nombre de cliente
-@app.put("/client/{idClient}")
+@app.put("/client/{idClient}", tags=["Clientes"])
 async def client_update(idClient: int, data: ClientData):
     if not data.name:
         raise HTTPException(status_code=400, detail="Nombre requerido")
