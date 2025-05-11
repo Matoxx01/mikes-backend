@@ -1,0 +1,5 @@
+fastapi[all]
+python-multipart
+uvicorn
+mysql[all]
+dotenv
