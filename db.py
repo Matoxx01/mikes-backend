@@ -17,9 +17,9 @@ class Database:
             self.connection = mysql.connector.connect(
                 host=os.getenv('DB_HOST'),
                 port=os.getenv('DB_PORT', '3306'),  # Puerto por defecto
-                user=os.getenv('USER'),
-                password=os.getenv('PASS'),
-                database=os.getenv('DB')
+                user=os.getenv('DB_USER'),
+                password=os.getenv('DB_PASSWORD'),
+                database=os.getenv('DB_NAME')
             )
             print("Conexión a MySQL exitosa.")
         except Error as e:
