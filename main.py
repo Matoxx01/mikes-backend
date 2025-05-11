@@ -23,8 +23,6 @@ from db import (
     update_product_quantity, search_all_users, delete_client, update_client
 )
 
-app = FastAPI()
-
 # Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
@@ -100,7 +98,7 @@ class ExcelUserData(BaseModel):
     nomina_idClient: int
 
 # Ruta raíz para verificar que la API está funcionando
-@app.get("/")
+@app.get("/", tags=["Test"])
 async def root():
     return {"message": "API funcionando correctamente"}
 
