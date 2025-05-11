@@ -17,9 +17,9 @@ class Database:
             self.connection = mysql.connector.connect(
                 host=os.getenv('DB_HOST'),
                 port=os.getenv('DB_PORT', '3306'),  # Puerto por defecto
-                user=os.getenv('USER'),
-                password=os.getenv('PASS'),
-                database=os.getenv('DB')
+                user=os.getenv('DB_USER'),
+                password=os.getenv('DB_PASSWORD'),
+                database=os.getenv('DB_NAME')
             )
             print("Conexión a MySQL exitosa.")
         except Error as e:
@@ -353,3 +353,11 @@ async def delete_client(client_id: int) -> None:
 async def update_client(id_client: int, name: str) -> None:
     q = 'UPDATE client SET name = %s WHERE idClient = %s'
     db.execute_query(q, (name, id_client))
+
+# Cambiar nombre de nómina
+async def changeNominaName(id_nomina: int, new_name: str) -> None:
+    """
+    Actualiza el campo name de la nómina especificada.
+    """
+    q = 'UPDATE nomina SET name = %s WHERE idNomina = %s'
+    db.execute_query(q, (new_name, id_nomina))

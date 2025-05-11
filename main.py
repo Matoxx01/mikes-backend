@@ -20,7 +20,8 @@ from db import (
     update_employee, add_employee, get_nominas, delete_nomina, get_users,
     insert_user, get_products, update_user_comment_signature, delete_user,
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
-    update_product_quantity, search_all_users, delete_client, update_client
+    update_product_quantity, search_all_users, delete_client, update_client,
+    changeNominaName
 )
 
 # Configuración de CORS
@@ -39,6 +40,7 @@ elif os.path.exists("./public"):
     app.mount("/static", StaticFiles(directory="./public"), name="static")
 
 # Modelos de datos para validación
+
 class LoginData(BaseModel):
     name: str
     password: str
@@ -96,6 +98,10 @@ class ExcelUserData(BaseModel):
     center: str
     nomina_idNomina: int
     nomina_idClient: int
+
+class NominaChangeData(BaseModel):
+    idNomina: int
+    name: str
 
 # Ruta raíz para verificar que la API está funcionando
 @app.get("/", tags=["Test"])
@@ -347,6 +353,20 @@ async def client_update(idClient: int, data: ClientData):
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al actualizar cliente: {str(e)}")
+
+# Cambiar nombre Nomina
+@app.put("/nomina/changeName", tags=["Nominas"])
+async def nomina_change_name(data: NominaChangeData):
+    """
+    Cambia el nombre de una nómina.
+    """
+    if not data.name.strip():
+        raise HTTPException(status_code=400, detail="Nombre vacío")
+    try:
+        await changeNominaName(data.idNomina, data.name)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al cambiar nombre: {str(e)}")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))
