@@ -20,9 +20,6 @@ class Database:
                 user=os.getenv('DB_USER'),
                 password=os.getenv('DB_PASSWORD'),
                 database=os.getenv('DB_NAME')
-                user=os.getenv('DB_USER'),
-                password=os.getenv('DB_PASSWORD'),
-                database=os.getenv('DB_NAME')
             )
             print("Conexión a MySQL exitosa.")
         except Error as e:
