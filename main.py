@@ -21,7 +21,7 @@ from db import (
     insert_user, get_products, update_user_comment_signature, delete_user,
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
-    changeNominaName
+    changeNominaName, delete_product, update_product_size
 )
 
 # Configuración de CORS
@@ -102,6 +102,10 @@ class ExcelUserData(BaseModel):
 class NominaChangeData(BaseModel):
     idNomina: int
     name: str
+
+# Guardar nueva talla
+class SizeData(BaseModel):
+    size: str
 
 # Ruta raíz para verificar que la API está funcionando
 @app.get("/", tags=["Test"])
@@ -367,6 +371,25 @@ async def nomina_change_name(data: NominaChangeData):
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al cambiar nombre: {str(e)}")
+    
+# Eliminar producto
+@app.delete("/product/del/{id}", tags=["Productos"])
+async def product_delete(id: int):
+    try:
+        await delete_product(id)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/product/saveSize/{id}", tags=["Productos"])
+async def product_save_size(id: int, data: SizeData):
+    if not data.size:
+        raise HTTPException(status_code=400, detail="Falta size")
+    try:
+        await update_product_size(id, data.size)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))

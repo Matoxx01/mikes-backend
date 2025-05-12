@@ -361,3 +361,13 @@ async def changeNominaName(id_nomina: int, new_name: str) -> None:
     """
     q = 'UPDATE nomina SET name = %s WHERE idNomina = %s'
     db.execute_query(q, (new_name, id_nomina))
+
+# Eliminar un producto
+async def delete_product(id_product: int) -> None:
+    q = 'DELETE FROM product WHERE idProduct = %s'
+    db.execute_query(q, (id_product,))
+
+# Actualizar talla de un producto
+async def update_product_size(id_product: int, size: str) -> None:
+    q = 'UPDATE product SET size = %s WHERE idProduct = %s'
+    db.execute_query(q, (size, id_product))
