@@ -371,3 +371,29 @@ async def delete_product(id_product: int) -> None:
 async def update_product_size(id_product: int, size: str) -> None:
     q = 'UPDATE product SET size = %s WHERE idProduct = %s'
     db.execute_query(q, (size, id_product))
+
+# Añadir un producto
+async def insert_product_return_id(product: Dict[str, Any]) -> int:
+    """
+    Inserta un producto y devuelve el idProduct generado.
+    Espera un dict con las mismas keys que ProductData.
+    """
+    q = """
+    INSERT INTO product
+      (sku, name, color, quantity, size,
+       user_idUser, user_nomina_idNomina, user_nomina_idClient)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    params = (
+        product['sku'],
+        product['name'],
+        product['color'],
+        product['quantity'],
+        product['size'],
+        product['user_idUser'],
+        product['user_nomina_idNomina'],
+        product['user_nomina_idClient']
+    )
+    # Ejecuta y captura el lastrowid
+    _, last_id = db.execute_query(q, params)
+    return last_id

@@ -21,7 +21,7 @@ from db import (
     insert_user, get_products, update_user_comment_signature, delete_user,
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
-    changeNominaName, delete_product, update_product_size
+    changeNominaName, delete_product, update_product_size, insert_product_return_id
 )
 
 # Configuración de CORS
@@ -381,6 +381,7 @@ async def product_delete(id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Guardar talla de producto
 @app.put("/product/saveSize/{id}", tags=["Productos"])
 async def product_save_size(id: int, data: SizeData):
     if not data.size:
@@ -390,6 +391,26 @@ async def product_save_size(id: int, data: SizeData):
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Agregar producto
+@app.post("/product/add", tags=["Productos"])
+async def product_add(data: ProductData):
+    """
+    Añade un producto vinculado a un usuario, nómina y cliente.
+    Devuelve el nuevo idProduct.
+    """
+    # Validación mínima
+    required = ["name", "user_idUser", "user_nomina_idNomina", "user_nomina_idClient"]
+    for field in required:
+        if getattr(data, field) is None:
+            raise HTTPException(status_code=400, detail=f"Falta '{field}'")
+
+    try:
+        new_id = await insert_product_return_id(data.dict())
+        return {"success": True, "idProduct": new_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al insertar producto: {e}")
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))
