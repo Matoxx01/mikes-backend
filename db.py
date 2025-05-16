@@ -10,24 +10,25 @@ load_dotenv()
 class Database:
     def __init__(self):
         self.connection = None
-        self.connect()
 
     def connect(self):
-        try:
-            self.connection = mysql.connector.connect(
-                host=os.getenv('DB_HOST'),
-                port=os.getenv('DB_PORT', '3306'),  # Puerto por defecto
-                user=os.getenv('DB_USER'),
-                password=os.getenv('DB_PASSWORD'),
-                database=os.getenv('DB_NAME')
-            )
-            print("Conexión a MySQL exitosa.")
-        except Error as e:
-            print(f"Error connecting to MySQL: {e}")
-            raise e
+        if not self.connection or not self.connection.is_connected():
+            try:
+                self.connection = mysql.connector.connect(
+                    host=os.getenv('DB_HOST'),
+                    port=int(os.getenv('DB_PORT', '3306')),
+                    user=os.getenv('DB_USER'),
+                    password=os.getenv('DB_PASSWORD'),
+                    database=os.getenv('DB_NAME')
+                )
+                print("🔌 Conectado a MySQL en", os.getenv("DB_HOST"))
+            except Error as e:
+                print("❌ Error conectando a MySQL:", e)
+                raise
 
     def execute_query(self, query: str, params: tuple = None) -> Tuple[List[Dict], Optional[int]]:
         """Ejecuta una consulta SQL y devuelve los resultados y el último ID insertado"""
+        self.connect()
         cursor = self.connection.cursor(dictionary=True)
         try:
             cursor.execute(query, params or ())
