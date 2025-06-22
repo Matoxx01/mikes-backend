@@ -205,17 +205,18 @@ async def get_products(user_id: int) -> List[Dict]:
     return results
 
 # Actualizar comentario y firma
-async def update_user_comment_signature(id_user: int, comment: str, signature: Optional[str], performed_by: str) -> None:
+async def update_user_comment_signature(id_user: int, comment: str, signature: Optional[str], performed_by: str, signatureDate: str) -> None:
     if signature:
         q = """
         UPDATE app_user
         SET 
             comment = %s,
             signature = %s,
-            employee = %s
+            employee = %s,
+            signatureDate = %s
         WHERE idUser = %s
         """
-        params = (comment, signature, performed_by, id_user)
+        params = (comment, signature, performed_by, signatureDate, id_user)
     else:
         q = """
         UPDATE app_user
@@ -225,6 +226,9 @@ async def update_user_comment_signature(id_user: int, comment: str, signature: O
         WHERE idUser = %s
         """
         params = (comment, performed_by, id_user)
+
+        print("Consulta SQL:", q)
+        print("Parámetros:", params)
     
     db.execute_query(q, params)
 
@@ -250,7 +254,7 @@ async def delete_user(id_user: int) -> None:
 async def export_excel_query(nomina_id: int) -> List[Dict]:
     query = """
     SELECT 
-        u.rut, u.name AS username, u.lastName, u.area, u.signature,
+        u.rut, u.name AS username, u.lastName, u.area, u.signature, u.employee, u.signatureDate,
         p.sku, p.name AS productName, p.color, p.quantity, p.size
     FROM app_user u
     LEFT JOIN product p ON u.idUser = p.user_idUser

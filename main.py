@@ -56,6 +56,7 @@ class CommentData(BaseModel):
     comment: Optional[str] = None
     signature: Optional[str] = None
     performedBy: str
+    signatureDate: str
 
 class NominaData(BaseModel):
     name: str
@@ -259,7 +260,7 @@ async def user_update_comment(id: int, data: CommentData):
         raise HTTPException(status_code=400, detail="Datos incompletos")
     
     try:
-        await update_user_comment_signature(id, data.comment, data.signature, data.performedBy)
+        await update_user_comment_signature(id, data.comment, data.signature, data.performedBy, data.signatureDate)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al actualizar: {str(e)}")
