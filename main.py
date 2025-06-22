@@ -20,7 +20,8 @@ from db import (
     insert_user, get_products, update_user_comment_signature, delete_user,
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
-    changeNominaName, delete_product, update_product_size, insert_product_return_id
+    changeNominaName, delete_product, update_product_size, insert_product_return_id,
+    get_report_counts
 )
 
 # Configuración de CORS
@@ -411,6 +412,15 @@ async def product_add(data: ProductData):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al insertar producto: {e}")
 
+@app.get("/report", tags=["Reporte"])
+async def report(nominaId: int):
+    if not nominaId:
+        raise HTTPException(status_code=400, detail="Falta nominaId")
+    try:
+        result = await get_report_counts(nominaId)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener reporte: {str(e)}")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))

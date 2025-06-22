@@ -402,3 +402,14 @@ async def insert_product_return_id(product: Dict[str, Any]) -> int:
     # Ejecuta y captura el lastrowid
     _, last_id = db.execute_query(q, params)
     return last_id
+
+# Reporte
+async def get_report_counts(nomina_id: int) -> Dict[str, int]:
+    q_total = "SELECT COUNT(*) as total FROM app_user WHERE nomina_idNomina = %s"
+    total, _ = db.execute_query(q_total, (nomina_id,))
+    q_signed = "SELECT COUNT(*) as signed FROM app_user WHERE nomina_idNomina = %s AND signature IS NOT NULL AND signature != ''"
+    signed, _ = db.execute_query(q_signed, (nomina_id,))
+    return {
+        "total": total[0]['total'],
+        "signed": signed[0]['signed']
+    }
