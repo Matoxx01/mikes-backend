@@ -254,7 +254,7 @@ async def delete_user(id_user: int) -> None:
 async def export_excel_query(nomina_id: int) -> List[Dict]:
     query = """
     SELECT 
-        u.rut, u.name AS username, u.lastName, u.area, u.signature, u.employee, u.signatureDate,
+        u.rut, u.name AS username, u.lastName, u.area, u.signature, u.employee, u.signatureDate, u.sex, u.center, u.service,
         p.sku, p.name AS productName, p.color, p.quantity, p.size
     FROM app_user u
     LEFT JOIN product p ON u.idUser = p.user_idUser
