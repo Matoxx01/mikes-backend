@@ -422,3 +422,134 @@ async def get_report_counts(nomina_id: int) -> Dict[str, int]:
         "total": total[0]['total'],
         "signed": signed[0]['signed']
     }
+
+# Inserción masiva de usuarios y productos
+def _chunked_list(lst, size):
+    """Yield successive chunks from lst."""
+    for i in range(0, len(lst), size):
+        yield lst[i:i+size]
+
+# Inserción masiva de usuarios y productos
+async def insert_bulk_users_products(payload: dict) -> dict:
+    """
+    Espera payload con keys:
+      - nomina_idNomina (int)
+      - nomina_idClient (int)
+      - users: List[ { rut, name, lastName, sex?, area?, service?, center?, products?: [ {name, color, quantity, size, sku} ] } ]
+    Hace inserts por lotes y en una sola transacción.
+    Devuelve dict con conteos.
+    """
+    nomina_id = payload.get("nomina_idNomina")
+    client_id = payload.get("nomina_idClient")
+    users = payload.get("users", [])
+
+    if not isinstance(users, list) or not nomina_id or not client_id:
+        raise ValueError("Payload inválido: falta nomina_idNomina, nomina_idClient o users")
+
+    if len(users) == 0:
+        return {"inserted_users": 0, "inserted_products": 0}
+
+    # Queries
+    user_insert_q = """
+    INSERT INTO app_user
+      (rut, name, lastName, sex, area, service, center, nomina_idNomina, nomina_idClient)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    product_insert_q = """
+    INSERT INTO product
+      (name, color, quantity, size, sku, user_idUser, user_nomina_idNomina, user_nomina_idClient)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    # Preparar valores
+    user_values = []
+    ruts = []
+    for u in users:
+        rut = u.get("rut")
+        if not rut:
+            raise ValueError("Cada usuario debe tener 'rut'")
+        ruts.append(rut)
+        user_values.append((
+            rut,
+            u.get("name", ""),
+            u.get("lastName", ""),
+            u.get("sex", ""),
+            u.get("area", ""),
+            u.get("service", ""),
+            u.get("center", ""),
+            nomina_id,
+            client_id
+        ))
+
+    product_values = []  # se llenará después de obtener los idUser
+
+    # Conectar y ejecutar en transacción usando la conexión existente
+    db.connect()  # asegura que db.connection exista
+    try:
+        db.begin_transaction()
+        # 1) Insertar usuarios por lotes (batch)
+        cursor = db.connection.cursor()
+        try:
+            BATCH_USERS = 500
+            for chunk in _chunked_list(user_values, BATCH_USERS):
+                cursor.executemany(user_insert_q, chunk)
+            # NOTA: no commit aquí; lo haremos al final de la transacción
+        finally:
+            cursor.close()
+
+        # 2) Recuperar idUser por rut (hacemos SELECTs por batch si ruts muy grandes)
+        rut_to_id = {}
+        BATCH_SELECT = 1000
+        # usar cursores con dictionary=True para obtener rut y idUser
+        for chunk in _chunked_list(ruts, BATCH_SELECT):
+            placeholders = ",".join(["%s"] * len(chunk))
+            sel_q = f"SELECT idUser, rut FROM app_user WHERE rut IN ({placeholders}) AND nomina_idNomina = %s AND nomina_idClient = %s"
+            sel_params = tuple(chunk) + (nomina_id, client_id)
+            sel_cursor = db.connection.cursor(dictionary=True)
+            try:
+                sel_cursor.execute(sel_q, sel_params)
+                rows = sel_cursor.fetchall()
+                for row in rows:
+                    rut_to_id[row["rut"]] = row["idUser"]
+            finally:
+                sel_cursor.close()
+
+        # 3) Preparar productos con los idUser encontrados
+        for u in users:
+            rut = u["rut"]
+            idUser = rut_to_id.get(rut)
+            if not idUser:
+                # Si por alguna razón no se encontró el id (duplica rut en otra nomina, etc.), lanzar
+                raise Exception(f"No se encontró idUser para rut {rut} — verifica la inserción o existencia previa.")
+            for p in u.get("products", []) or []:
+                product_values.append((
+                    p.get("name", ""),
+                    p.get("color", ""),
+                    p.get("quantity", 0),
+                    p.get("size", ""),
+                    p.get("sku", ""),
+                    idUser,
+                    nomina_id,
+                    client_id
+                ))
+
+        # 4) Insertar productos por lotes
+        if product_values:
+            cursor2 = db.connection.cursor()
+            try:
+                BATCH_PRODUCTS = 1000
+                for chunk in _chunked_list(product_values, BATCH_PRODUCTS):
+                    cursor2.executemany(product_insert_q, chunk)
+            finally:
+                cursor2.close()
+
+        # 5) Commit único y devolver conteos
+        db.commit()
+        return {"inserted_users": len(user_values), "inserted_products": len(product_values)}
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise e

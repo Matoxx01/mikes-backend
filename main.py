@@ -28,7 +28,7 @@ from db import (
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
-    get_report_counts
+    get_report_counts, insert_bulk_users_products
 )
 
 # Configuración de CORS
@@ -126,6 +126,28 @@ class ExcelUserData(BaseModel):
 class NominaChangeData(BaseModel):
     idNomina: int
     name: str
+
+class BulkProduct(BaseModel):
+    name: str
+    color: Optional[str] = ""
+    quantity: Optional[int] = 0
+    size: Optional[str] = ""
+    sku: Optional[str] = ""
+
+class BulkUser(BaseModel):
+    rut: str
+    name: str
+    lastName: str
+    sex: Optional[str] = ""
+    area: Optional[str] = ""
+    service: Optional[str] = ""
+    center: Optional[str] = ""
+    products: Optional[List[BulkProduct]] = []
+
+class BulkImportData(BaseModel):
+    nomina_idNomina: int
+    nomina_idClient: int
+    users: List[BulkUser]
 
 # Guardar nueva talla
 class SizeData(BaseModel):
@@ -430,6 +452,7 @@ async def product_add(data: ProductData, api_key: str = Depends(require_api_key)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al insertar producto: {e}")
 
+# Obtener reporte de conteos
 @app.get("/report", tags=["Reporte"])
 async def report(nominaId: int, api_key: str = Depends(require_api_key)):
     if not nominaId:
@@ -439,11 +462,22 @@ async def report(nominaId: int, api_key: str = Depends(require_api_key)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener reporte: {str(e)}")
-    
+
+# Importación masiva de usuarios y productos
+@app.post("/import_bulk", tags=["Excel"])
+async def import_bulk(data: BulkImportData, api_key: str = Depends(require_api_key)):
+    try:
+        result = await insert_bulk_users_products(data.dict())
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno al importar: {str(e)}")
+
+# Manejo de errores 404
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
     raise HTTPException(status_code=404, detail="Página no encontrada")
 
+# Ejecutar la aplicación
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
