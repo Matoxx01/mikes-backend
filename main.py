@@ -1,11 +1,15 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, status, APIRouter, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any, Union
+from fastapi.security.api_key import APIKeyHeader
 import os
 import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(
     docs_url=None,
@@ -35,6 +39,22 @@ app.add_middleware(
     allow_methods=["*"],  # Permitir todos los métodos
     allow_headers=["*"],  # Permitir todos los headers
 )
+
+# --- Carga de API Keys desde variable de entorno ---
+API_KEY = os.getenv("API_KEY")
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def require_api_key(api_key: str = Security(api_key_header)):
+    if not API_KEY:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="API no configurada")
+    if not api_key or api_key not in API_KEY:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
+    return api_key
+
+@app.get("/hello")
+async def hello(api_key: str = Depends(require_api_key)):
+    return {"message": "Hola desde la API protegida"}
 
 # Rutas estáticas para cuando sea necesario servir archivos estáticos
 if os.path.exists("../public"):
@@ -113,7 +133,7 @@ class SizeData(BaseModel):
 
 # Login
 @app.post("/login", tags=["Empleados"])
-async def login(data: LoginData):
+async def login(data: LoginData, api_key: str = Depends(require_api_key)):
     if not data.name or not data.password:
         raise HTTPException(status_code=400, detail="Falta nombre o clave")
     
@@ -131,7 +151,7 @@ async def login(data: LoginData):
 
 # Obtener el cliente
 @app.get("/client", tags=["Clientes"])
-async def client_list():
+async def client_list(api_key: str = Depends(require_api_key)):
     try:
         results = await get_client()
         return results
@@ -140,7 +160,7 @@ async def client_list():
 
 # Agregar cliente
 @app.post("/client", tags=["Clientes"])
-async def client_add(data: ClientData):
+async def client_add(data: ClientData, api_key: str = Depends(require_api_key)):
     if not data.name:
         raise HTTPException(status_code=400, detail="Nombre requerido")
     
@@ -152,7 +172,7 @@ async def client_add(data: ClientData):
 
 # Listar empleados
 @app.get("/employees", tags=["Empleados"])
-async def employee_list():
+async def employee_list(api_key: str = Depends(require_api_key)):
     try:
         results = await get_employee()
         return results
@@ -161,7 +181,7 @@ async def employee_list():
 
 # Eliminar empleado
 @app.delete("/employee/{id}", tags=["Empleados"])
-async def employee_delete(id: int):
+async def employee_delete(id: int, api_key: str = Depends(require_api_key)):
     try:
         await delete_employee(id)
         return {"success": True}
@@ -170,7 +190,7 @@ async def employee_delete(id: int):
 
 # Actualizar empleado
 @app.put("/employee/{id}", tags=["Empleados"])
-async def employee_update(id: int, data: EmployeeData):
+async def employee_update(id: int, data: EmployeeData, api_key: str = Depends(require_api_key)):
     try:
         await update_employee(id, data.name, data.password, data.role)
         return {"success": True}
@@ -179,7 +199,7 @@ async def employee_update(id: int, data: EmployeeData):
 
 # Crear empleado
 @app.post("/employee", tags=["Empleados"])
-async def employee_create(data: EmployeeData):
+async def employee_create(data: EmployeeData, api_key: str = Depends(require_api_key)):
     if not data.name or not data.password or not data.role:
         raise HTTPException(status_code=400, detail="Datos incompletos")
     
@@ -191,7 +211,7 @@ async def employee_create(data: EmployeeData):
 
 # Obtener nóminas de un cliente dado
 @app.get("/nomina", tags=["Nominas"])
-async def nomina_list(clientId: int):
+async def nomina_list(clientId: int, api_key: str = Depends(require_api_key)):
     if not clientId:
         raise HTTPException(status_code=400, detail="Falta clientId en la query")
     
@@ -203,7 +223,7 @@ async def nomina_list(clientId: int):
 
 # Eliminar nómina + usuarios asociados + posible cliente
 @app.delete("/nomina/{id}", tags=["Nominas"])
-async def nomina_delete(id: int, clientId: int):
+async def nomina_delete(id: int, clientId: int, api_key: str = Depends(require_api_key)):
     try:
         await delete_nomina(id, clientId)
         return {"success": True}
@@ -212,7 +232,7 @@ async def nomina_delete(id: int, clientId: int):
 
 # Obtener usuarios
 @app.get("/users", tags=["Usuarios"])
-async def user_list(nominaId: int):
+async def user_list(nominaId: int, api_key: str = Depends(require_api_key)):
     if not nominaId:
         raise HTTPException(status_code=400, detail="Falta nominaId en la query")
     
@@ -224,7 +244,7 @@ async def user_list(nominaId: int):
 
 # Agregar usuario
 @app.post("/user", tags=["Usuarios"])
-async def user_add(data: UserData):
+async def user_add(data: UserData, api_key: str = Depends(require_api_key)):
     required_fields = ["rut", "name", "lastName", "sex", "area", "service", "center", "nominaId", "clientId"]
     for field in required_fields:
         if not hasattr(data, field) or not getattr(data, field):
@@ -241,7 +261,7 @@ async def user_add(data: UserData):
 
 # Obtener productos
 @app.get("/products", tags=["Productos"])
-async def product_list(userId: int):
+async def product_list(userId: int, api_key: str = Depends(require_api_key)):
     if not userId:
         raise HTTPException(status_code=400, detail="Falta userId en la query")
     
@@ -253,7 +273,7 @@ async def product_list(userId: int):
 
 # Actualizar comentario y firma de un usuario
 @app.put("/user/{id}/comment", tags=["Usuarios"])
-async def user_update_comment(id: int, data: CommentData):
+async def user_update_comment(id: int, data: CommentData, api_key: str = Depends(require_api_key)):
     # Validación mejorada
     if data.comment is None or not data.performedBy:
         raise HTTPException(status_code=400, detail="Datos incompletos")
@@ -266,7 +286,7 @@ async def user_update_comment(id: int, data: CommentData):
 
 # Eliminar usuario
 @app.delete("/user/{id}", tags=["Usuarios"])
-async def user_delete(id: int):
+async def user_delete(id: int, api_key: str = Depends(require_api_key)):
     try:
         await delete_user(id)
         return {"success": True}
@@ -275,7 +295,7 @@ async def user_delete(id: int):
 
 # Exportar a Excel
 @app.get("/exportExcel", tags=["Excel"])
-async def export_excel(nominaId: int):
+async def export_excel(nominaId: int, api_key: str = Depends(require_api_key)):
     if not nominaId:
         raise HTTPException(status_code=400, detail="Falta el parámetro nominaId")
     
@@ -287,7 +307,7 @@ async def export_excel(nominaId: int):
 
 # Agregar nómina
 @app.post("/nomina", tags=["Excel"])
-async def nomina_add(data: NominaData):
+async def nomina_add(data: NominaData, api_key: str = Depends(require_api_key)):
     try:
         result = await insert_nomina(data.name, data.client_idClient)
         return {"idNomina": result["insertId"]}
@@ -296,7 +316,7 @@ async def nomina_add(data: NominaData):
 
 # Agregar usuario desde Excel
 @app.post("/app_user", tags=["Excel"])
-async def user_add_excel(data: ExcelUserData):
+async def user_add_excel(data: ExcelUserData, api_key: str = Depends(require_api_key)):
     try:
         result = await insert_excel_user(data.dict())
         return {"idUser": result["insertId"]}
@@ -305,7 +325,7 @@ async def user_add_excel(data: ExcelUserData):
 
 # Agregar producto
 @app.post("/product", tags=["Excel"])
-async def product_add(data: ProductData):
+async def product_add(data: ProductData, api_key: str = Depends(require_api_key)):
     try:
         await insert_product(data.dict())
         return {"success": True}
@@ -314,7 +334,7 @@ async def product_add(data: ProductData):
 
 # Actualizar cantidad de producto
 @app.put("/product/{id}", tags=["Productos"])
-async def product_update_quantity(id: int, data: ProductQuantityData):
+async def product_update_quantity(id: int, data: ProductQuantityData, api_key: str = Depends(require_api_key)):
     if data.quantity is None:
         raise HTTPException(status_code=400, detail="Falta quantity")
     
@@ -326,7 +346,7 @@ async def product_update_quantity(id: int, data: ProductQuantityData):
 
 # Buscar usuarios
 @app.get("/users/search", tags=["Usuarios"])
-async def users_search(q: Optional[str] = None):
+async def users_search(q: Optional[str] = None, api_key: str = Depends(require_api_key)):
     if not q:
         return []
     
@@ -338,7 +358,7 @@ async def users_search(q: Optional[str] = None):
 
 # Eliminar cliente y todas sus dependencias
 @app.delete("/client/{idClient}", tags=["Clientes"])
-async def client_delete(idClient: int):
+async def client_delete(idClient: int, api_key: str = Depends(require_api_key)):
     try:
         await delete_client(idClient)
         return {"success": True}
@@ -347,7 +367,7 @@ async def client_delete(idClient: int):
 
 # Actualizar nombre de cliente
 @app.put("/client/{idClient}", tags=["Clientes"])
-async def client_update(idClient: int, data: ClientData):
+async def client_update(idClient: int, data: ClientData, api_key: str = Depends(require_api_key)):
     if not data.name:
         raise HTTPException(status_code=400, detail="Nombre requerido")
     
@@ -359,7 +379,7 @@ async def client_update(idClient: int, data: ClientData):
 
 # Cambiar nombre Nomina
 @app.put("/nomina/changeName", tags=["Nominas"])
-async def nomina_change_name(data: NominaChangeData):
+async def nomina_change_name(data: NominaChangeData, api_key: str = Depends(require_api_key)):
     """
     Cambia el nombre de una nómina.
     """
@@ -373,7 +393,7 @@ async def nomina_change_name(data: NominaChangeData):
     
 # Eliminar producto
 @app.delete("/product/del/{id}", tags=["Productos"])
-async def product_delete(id: int):
+async def product_delete(id: int, api_key: str = Depends(require_api_key)):
     try:
         await delete_product(id)
         return {"success": True}
@@ -382,7 +402,7 @@ async def product_delete(id: int):
 
 # Guardar talla de producto
 @app.put("/product/saveSize/{id}", tags=["Productos"])
-async def product_save_size(id: int, data: SizeData):
+async def product_save_size(id: int, data: SizeData, api_key: str = Depends(require_api_key)):
     if not data.size:
         raise HTTPException(status_code=400, detail="Falta size")
     try:
@@ -393,7 +413,7 @@ async def product_save_size(id: int, data: SizeData):
 
 # Agregar producto
 @app.post("/product/add", tags=["Productos"])
-async def product_add(data: ProductData):
+async def product_add(data: ProductData, api_key: str = Depends(require_api_key)):
     """
     Añade un producto vinculado a un usuario, nómina y cliente.
     Devuelve el nuevo idProduct.
@@ -411,7 +431,7 @@ async def product_add(data: ProductData):
         raise HTTPException(status_code=500, detail=f"Error al insertar producto: {e}")
 
 @app.get("/report", tags=["Reporte"])
-async def report(nominaId: int):
+async def report(nominaId: int, api_key: str = Depends(require_api_key)):
     if not nominaId:
         raise HTTPException(status_code=400, detail="Falta nominaId")
     try:
