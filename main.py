@@ -8,6 +8,9 @@ import os
 import uvicorn
 
 app = FastAPI(
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
     title="Mike's APIs",
     description="APIs en produccion de Mike's",
     version="1.0.0",
@@ -107,11 +110,6 @@ class NominaChangeData(BaseModel):
 # Guardar nueva talla
 class SizeData(BaseModel):
     size: str
-
-# Ruta raíz para verificar que la API está funcionando
-@app.get("/", tags=["Test"])
-async def root():
-    return {"message": "API funcionando correctamente"}
 
 # Login
 @app.post("/login", tags=["Empleados"])
@@ -421,6 +419,10 @@ async def report(nominaId: int):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener reporte: {str(e)}")
+    
+@app.exception_handler(404)
+async def not_found_handler(request, exc):
+    raise HTTPException(status_code=404, detail="Página no encontrada")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))
