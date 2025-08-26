@@ -28,7 +28,7 @@ from db import (
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
-    get_report_counts, insert_bulk_users_products
+    get_report_counts, insert_bulk_users_products, get_users_with_products
 )
 
 # Configuración de CORS
@@ -471,6 +471,21 @@ async def import_bulk(data: BulkImportData, api_key: str = Depends(require_api_k
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al importar: {str(e)}")
+
+# Obtener usuarios con productos
+@app.get("/users_with_products", tags=["Usuarios"])
+async def users_with_products(nominaId: int, api_key: str = Depends(require_api_key)):
+    """
+    Devuelve todos los usuarios de una nómina con sus productos incluidos (en 'products').
+    Uso: /users_with_products?nominaId=123
+    """
+    if not nominaId:
+        raise HTTPException(status_code=400, detail="Falta nominaId en la query")
+    try:
+        results = await get_users_with_products(nominaId)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno al obtener usuarios con productos: {str(e)}")
 
 # Manejo de errores 404
 @app.exception_handler(404)

@@ -553,3 +553,65 @@ async def insert_bulk_users_products(payload: dict) -> dict:
         except Exception:
             pass
         raise e
+    
+async def get_users_with_products(nomina_id: int) -> list:
+    """
+    Devuelve lista de usuarios con un campo 'products' que es lista de productos.
+    Cada usuario tiene: idUser, rut, name, lastName, sex, area, service, center, signature, comment, nomina_idNomina
+    Cada producto tiene: idProduct, sku, name, color, quantity, size
+    """
+    q = """
+    SELECT
+      u.idUser AS idUser,
+      u.rut AS rut,
+      u.name AS name,
+      u.lastName AS lastName,
+      u.sex AS sex,
+      u.area AS area,
+      u.service AS service,
+      u.center AS center,
+      u.signature AS signature,
+      u.comment AS comment,
+      u.nomina_idNomina AS nomina_idNomina,
+      p.idProduct AS idProduct,
+      p.sku AS sku,
+      p.name AS productName,
+      p.color AS color,
+      p.quantity AS quantity,
+      p.size AS size
+    FROM app_user u
+    LEFT JOIN product p ON u.idUser = p.user_idUser
+    WHERE u.nomina_idNomina = %s
+    ORDER BY u.rut, u.idUser
+    """
+    rows, _ = db.execute_query(q, (nomina_id,))
+    users_map = {}
+    for r in rows:
+        uid = r['idUser']
+        if uid not in users_map:
+            users_map[uid] = {
+                "idUser": uid,
+                "rut": r.get("rut"),
+                "name": r.get("name"),
+                "lastName": r.get("lastName"),
+                "sex": r.get("sex"),
+                "area": r.get("area"),
+                "service": r.get("service"),
+                "center": r.get("center"),
+                "signature": r.get("signature"),
+                "comment": r.get("comment"),
+                "nomina_idNomina": r.get("nomina_idNomina"),
+                "products": []
+            }
+        # Si hay producto asociado (LEFT JOIN puede dar NULL)
+        if r.get("idProduct") is not None:
+            users_map[uid]["products"].append({
+                "idProduct": r.get("idProduct"),
+                "sku": r.get("sku"),
+                "name": r.get("productName"),
+                "color": r.get("color"),
+                "quantity": r.get("quantity"),
+                "size": r.get("size")
+            })
+    # Devolver lista preservando orden por rut/idUser
+    return list(users_map.values())
