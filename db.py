@@ -194,7 +194,7 @@ async def insert_user(rut: str, name: str, last_name: str, sex: str, area: str,
     )
     return last_id
 
-# Obtener productos
+# Obtener productos segun usuario
 async def get_products(user_id: int) -> List[Dict]:
     q = """
     SELECT idProduct, sku, name, color, quantity, size
@@ -202,6 +202,15 @@ async def get_products(user_id: int) -> List[Dict]:
     WHERE user_idUser = %s
     """
     results, _ = db.execute_query(q, (user_id,))
+    return results
+
+# Obtener todos los productos
+async def get_all_products() -> List[Dict]:
+    q = """
+    SELECT idProduct, sku, name, color, quantity, size
+    FROM product
+    """
+    results, _ = db.execute_query(q)
     return results
 
 # Actualizar comentario y firma

@@ -28,7 +28,7 @@ from db import (
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
-    get_report_counts, insert_bulk_users_products, get_users_with_products
+    get_report_counts, insert_bulk_users_products, get_users_with_products, get_all_products
 )
 
 # Configuración de CORS
@@ -289,6 +289,15 @@ async def product_list(userId: int, api_key: str = Depends(require_api_key)):
     
     try:
         results = await get_products(userId)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno al obtener productos: {str(e)}")
+    
+# Obtener todos los productos
+@app.get("/allproducts", tags=["Productos"])
+async def product_list(api_key: str = Depends(require_api_key)):    
+    try:
+        results = await get_all_products()
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al obtener productos: {str(e)}")
