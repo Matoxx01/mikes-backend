@@ -243,7 +243,7 @@ async def nomina_list(clientId: int, api_key: str = Depends(require_api_key)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener nóminas: {str(e)}")
 
-# Eliminar nómina + usuarios asociados + posible cliente
+# Eliminar nómina + usuarios asociados + productos asociados
 @app.delete("/nomina/{id}", tags=["Nominas"])
 async def nomina_delete(id: int, clientId: int, api_key: str = Depends(require_api_key)):
     try:

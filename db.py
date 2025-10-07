@@ -154,16 +154,6 @@ async def delete_nomina(id_nomina: int, client_id: int) -> None:
         # 4) Borrar la nómina
         q2 = 'DELETE FROM nomina WHERE idNomina = %s'
         db.execute_query(q2, (id_nomina,))
-
-        # 5) Comprobar si quedan nóminas de ese cliente
-        q3 = 'SELECT COUNT(*) AS cnt FROM nomina WHERE client_idClient = %s'
-        results, _ = db.execute_query(q3, (client_id,))
-        remaining = results[0]['cnt']
-
-        if remaining == 0:
-            # 6) Borrar cliente
-            q4 = 'DELETE FROM client WHERE idClient = %s'
-            db.execute_query(q4, (client_id,))
         
         db.commit()
     except Exception as e:
