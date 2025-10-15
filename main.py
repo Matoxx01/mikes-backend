@@ -24,7 +24,7 @@ app = FastAPI(
 from db import (
     authenticate, add_client, get_client, get_employee, delete_employee,
     update_employee, add_employee, get_nominas, delete_nomina, get_users,
-    insert_user, get_products, update_user_comment_signature, delete_user,
+    get_users_paginated, insert_user, get_products, update_user_comment_signature, delete_user,
     export_excel_query, insert_nomina, insert_excel_user, insert_product,
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
@@ -261,6 +261,23 @@ async def user_list(nominaId: int, api_key: str = Depends(require_api_key)):
     try:
         results = await get_users(nominaId)
         return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener usuarios: {str(e)}")
+
+# Obtener usuarios con paginación
+@app.get("/users/paginated", tags=["Usuarios"])
+async def user_list_paginated(nominaId: int, page: int = 1, limit: int = 8, api_key: str = Depends(require_api_key)):
+    if not nominaId:
+        raise HTTPException(status_code=400, detail="Falta nominaId en la query")
+    
+    if page < 1:
+        raise HTTPException(status_code=400, detail="La página debe ser mayor a 0")
+    
+    offset = (page - 1) * limit
+    
+    try:
+        result = await get_users_paginated(nominaId, offset, limit)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener usuarios: {str(e)}")
 

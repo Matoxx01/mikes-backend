@@ -168,6 +168,34 @@ async def get_users(nomina_id: int) -> List[Dict]:
     results, _ = db.execute_query(q, (nomina_id,))
     return results
 
+# Obtener usuarios con paginación
+async def get_users_paginated(nomina_id: int, offset: int = 0, limit: int = 8) -> Dict:
+    """
+    Obtiene usuarios de una nómina con paginación
+    Retorna un dict con 'users', 'total' y 'has_more'
+    """
+    # Consulta para obtener el total de usuarios
+    count_query = "SELECT COUNT(*) as total FROM vista_usuarios WHERE nomina_idNomina = %s"
+    count_result, _ = db.execute_query(count_query, (nomina_id,))
+    total = count_result[0]['total'] if count_result else 0
+    
+    # Consulta para obtener usuarios paginados
+    query = """
+    SELECT * FROM vista_usuarios 
+    WHERE nomina_idNomina = %s 
+    ORDER BY rut 
+    LIMIT %s OFFSET %s
+    """
+    results, _ = db.execute_query(query, (nomina_id, limit, offset))
+    
+    return {
+        "users": results,
+        "total": total,
+        "has_more": (offset + limit) < total,
+        "current_page": (offset // limit) + 1,
+        "total_pages": (total + limit - 1) // limit  # Ceil division
+    }
+
 # Agregar un usuario
 async def insert_user(rut: str, name: str, last_name: str, sex: str, area: str, 
                      service: str, center: str, nomina_id: int, client_id: int) -> int:
