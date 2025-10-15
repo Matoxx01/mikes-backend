@@ -163,12 +163,7 @@ async def delete_nomina(id_nomina: int, client_id: int) -> None:
 # Obtener usuarios
 async def get_users(nomina_id: int) -> List[Dict]:
     q = """
-    SELECT idUser, rut, name, lastName, sex, area, service, center,
-        -- devolver TRUE si signature tiene valor, NULL si es vacío/NULL
-        (CASE WHEN signature IS NOT NULL AND signature != '' THEN TRUE ELSE NULL END) AS signature,
-        comment, nomina_idNomina
-    FROM app_user
-    WHERE nomina_idNomina = %s
+    SELECT * FROM vista_usuarios WHERE nomina_idNomina = %s;
     """
     results, _ = db.execute_query(q, (nomina_id,))
     return results
@@ -568,14 +563,8 @@ async def get_users_with_products(nomina_id: int) -> list:
       u.rut AS rut,
       u.name AS name,
       u.lastName AS lastName,
-      u.sex AS sex,
-      u.area AS area,
-      u.service AS service,
-      u.center AS center,
-      u.comment AS comment,
       u.nomina_idNomina AS nomina_idNomina,
       p.idProduct AS idProduct,
-      p.sku AS sku,
       p.name AS productName,
       p.color AS color,
       p.quantity AS quantity,
