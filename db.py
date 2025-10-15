@@ -633,3 +633,15 @@ async def get_users_with_products(nomina_id: int) -> list:
             })
     # Devolver lista preservando orden por rut/idUser
     return list(users_map.values())
+
+# Obtener usuario por ID específico
+async def get_user_by_id_db(user_id: int) -> Optional[Dict]:
+    """
+    Busca un usuario específico por su ID.
+    Retorna el usuario con todos sus campos o None si no existe.
+    """
+    q = """
+    SELECT * FROM vista_usuarios WHERE idUser = %s LIMIT 1
+    """
+    results, _ = db.execute_query(q, (user_id,))
+    return results[0] if results else None

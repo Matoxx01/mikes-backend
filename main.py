@@ -29,6 +29,7 @@ from db import (
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
     get_report_counts, insert_bulk_users_products, get_users_with_products, get_all_products,
+    get_user_by_id_db,
 )
 
 # Configuración de CORS
@@ -517,6 +518,22 @@ async def users_with_products(nominaId: int, api_key: str = Depends(require_api_
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
     raise HTTPException(status_code=404, detail="Página no encontrada")
+
+# Obtener usuario específico por ID
+@app.get("/user/{user_id}", tags=["Usuarios"])
+async def get_user_by_id(user_id: int, api_key: str = Depends(require_api_key)):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="ID de usuario requerido")
+    
+    try:
+        user = await get_user_by_id_db(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener usuario: {str(e)}")
 
 # Ejecutar la aplicación
 if __name__ == "__main__":
