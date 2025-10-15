@@ -360,10 +360,10 @@ async def search_all_users(query: str) -> List[Dict]:
     FROM app_user au
     JOIN nomina n ON au.nomina_idNomina = n.idNomina AND au.nomina_idClient = n.client_idClient
     JOIN client c ON n.client_idClient = c.idClient
-    WHERE au.rut LIKE %s OR au.name LIKE %s OR au.lastName LIKE %s
+    WHERE au.rut LIKE %s OR CONCAT(au.name, ' ', au.lastName) LIKE %s
     LIMIT 3
     """
-    results, _ = db.execute_query(sql, (like, like, like))
+    results, _ = db.execute_query(sql, (like, like))
     return results
 
 # Eliminar cliente y todas sus dependencias
