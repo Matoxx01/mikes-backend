@@ -29,7 +29,6 @@ from db import (
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
     get_report_counts, insert_bulk_users_products, get_users_with_products, get_all_products,
-    export_optimized_query
 )
 
 # Configuración de CORS
@@ -333,18 +332,6 @@ async def export_excel(nominaId: int, api_key: str = Depends(require_api_key)):
     
     try:
         results = await export_excel_query(nominaId)
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al exportar datos: {str(e)}")
-
-# Exportar datos optimizados
-@app.get("/exportOptimized", tags=["Excel"])
-async def export_optimized(nominaId: int, signedOnly: bool = False, api_key: str = Depends(require_api_key)):
-    if not nominaId:
-        raise HTTPException(status_code=400, detail="Falta el parámetro nominaId")
-    
-    try:
-        results = await export_optimized_query(nominaId, signedOnly)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al exportar datos: {str(e)}")

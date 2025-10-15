@@ -163,7 +163,10 @@ async def delete_nomina(id_nomina: int, client_id: int) -> None:
 # Obtener usuarios
 async def get_users(nomina_id: int) -> List[Dict]:
     q = """
-    SELECT idUser, rut, name, lastName, sex, area, service, center, signature, comment, nomina_idNomina
+    SELECT idUser, rut, name, lastName, sex, area, service, center,
+        -- devolver TRUE si signature tiene valor, NULL si es vacío/NULL
+        (CASE WHEN signature IS NOT NULL AND signature != '' THEN TRUE ELSE NULL END) AS signature,
+        comment, nomina_idNomina
     FROM app_user
     WHERE nomina_idNomina = %s
     """
@@ -569,7 +572,6 @@ async def get_users_with_products(nomina_id: int) -> list:
       u.area AS area,
       u.service AS service,
       u.center AS center,
-      u.signature AS signature,
       u.comment AS comment,
       u.nomina_idNomina AS nomina_idNomina,
       p.idProduct AS idProduct,
@@ -614,43 +616,3 @@ async def get_users_with_products(nomina_id: int) -> list:
             })
     # Devolver lista preservando orden por rut/idUser
     return list(users_map.values())
-
-# Exportar datos optimizados para PDF/Excel
-async def export_optimized_query(nomina_id: int, signed_only: bool = False) -> List[Dict]:
-    """
-    Consulta optimizada que trae todos los datos necesarios para exportación
-    en una sola query, incluyendo información de firma procesada.
-    """
-    signed_filter = "AND u.signature IS NOT NULL AND u.signature != ''" if signed_only else ""
-    
-    query = f"""
-    SELECT 
-        u.rut, 
-        u.name AS username, 
-        u.lastName, 
-        u.area, 
-        u.sex, 
-        u.center, 
-        u.service,
-        u.signature,
-        u.employee, 
-        u.signatureDate,
-        COALESCE(p.sku, 'N/A') AS sku,
-        COALESCE(p.name, 'N/A') AS productName,
-        COALESCE(p.color, 'N/A') AS color,
-        COALESCE(p.quantity, 0) AS quantity,
-        COALESCE(p.size, 'N/A') AS size,
-        -- Indicador de si tiene firma válida
-        CASE 
-            WHEN u.signature IS NOT NULL AND u.signature != '' THEN 1 
-            ELSE 0 
-        END AS has_signature
-    FROM app_user u
-    LEFT JOIN product p ON u.idUser = p.user_idUser
-    WHERE u.nomina_idNomina = %s {signed_filter}
-    ORDER BY 
-        CASE WHEN u.signature IS NOT NULL AND u.signature != '' THEN 0 ELSE 1 END,
-        u.rut, u.idUser, p.idProduct
-    """
-    results, _ = db.execute_query(query, (nomina_id,))
-    return results
