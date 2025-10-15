@@ -183,7 +183,7 @@ async def get_users_paginated(nomina_id: int, offset: int = 0, limit: int = 8) -
     query = """
     SELECT * FROM vista_usuarios 
     WHERE nomina_idNomina = %s 
-    ORDER BY rut 
+    ORDER BY lastName
     LIMIT %s OFFSET %s
     """
     results, _ = db.execute_query(query, (nomina_id, limit, offset))
@@ -645,3 +645,31 @@ async def get_user_by_id_db(user_id: int) -> Optional[Dict]:
     """
     results, _ = db.execute_query(q, (user_id,))
     return results[0] if results else None
+
+# Buscar usuarios dentro de una nómina específica por nombre, apellido o rut
+async def search_users_in_nomina(nomina_id: int, query: str) -> List[Dict]:
+    """
+    Busca usuarios dentro de una nómina específica por RUT o concatenación de nombre y apellido.
+    Limita los resultados a 8 usuarios.
+    """
+    like = f"%{query}%"
+    sql = """
+    SELECT 
+        idUser, 
+        rut, 
+        name, 
+        lastName, 
+        sex,
+        area,
+        service,
+        center,
+        nomina_idNomina, 
+        nomina_idClient
+    FROM app_user
+    WHERE nomina_idNomina = %s 
+    AND (rut LIKE %s OR CONCAT(name, ' ', lastName) LIKE %s)
+    ORDER BY lastName
+    LIMIT 8
+    """
+    results, _ = db.execute_query(sql, (nomina_id, like, like))
+    return results

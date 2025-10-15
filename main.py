@@ -29,7 +29,7 @@ from db import (
     update_product_quantity, search_all_users, delete_client, update_client,
     changeNominaName, delete_product, update_product_size, insert_product_return_id,
     get_report_counts, insert_bulk_users_products, get_users_with_products, get_all_products,
-    get_user_by_id_db,
+    get_user_by_id_db, search_users_in_nomina,
 )
 
 # Configuración de CORS
@@ -404,6 +404,21 @@ async def users_search(q: Optional[str] = None, api_key: str = Depends(require_a
         return users
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al buscar usuarios: {str(e)}")
+
+# Buscar usuarios dentro de una nómina específica
+@app.get("/nomina/{nomina_id}/users/search", tags=["Usuarios"])
+async def nomina_users_search(nomina_id: int, q: Optional[str] = None, api_key: str = Depends(require_api_key)):
+    if not nomina_id:
+        raise HTTPException(status_code=400, detail="ID de nómina requerido")
+    
+    if not q:
+        return []
+    
+    try:
+        users = await search_users_in_nomina(nomina_id, q)
+        return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno al buscar usuarios en nómina: {str(e)}")
 
 # Eliminar cliente y todas sus dependencias
 @app.delete("/client/{idClient}", tags=["Clientes"])
